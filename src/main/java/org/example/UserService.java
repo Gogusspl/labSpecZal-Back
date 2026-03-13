@@ -25,7 +25,7 @@ public class UserService {
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
         user.setCountry(country);
-        user.setRoles(Set.of(Role.ROLE_USER));
+        user.setRoles(Set.of(Role.USER));
         return userRepository.save(user);
     }
 

@@ -45,7 +45,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (jwtUtil.isTokenValid(token) && !jwtUtil.isTokenExpired(token)) {
                 String email = jwtUtil.extractEmail(token);
 
-                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (email != null ) {
                     Set<Role> roles = jwtUtil.extractRoles(token);
                     List<SimpleGrantedAuthority> authorities = roles.stream()
                             .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
