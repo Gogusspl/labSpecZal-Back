@@ -3,6 +3,7 @@ package org.example;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
 
@@ -13,10 +14,14 @@ public class CommentController {
 
     private final CommentRepository repository;
     private final PostRepository postRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public CommentController(CommentRepository repository, PostRepository postRepository) {
+    public CommentController(CommentRepository repository,
+                             PostRepository postRepository,
+                             SimpMessagingTemplate messagingTemplate) {
         this.repository = repository;
         this.postRepository = postRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // 🔹 GET komentarzy do posta
@@ -36,11 +41,21 @@ public class CommentController {
 
         Comment saved = repository.save(comment);
 
-        // 🔥 zwiększamy licznik replies w poście
         postRepository.findById(comment.getPostId()).ifPresent(post -> {
             post.setReplies(post.getReplies() + 1);
             postRepository.save(post);
         });
+
+        // 🔥 WYŚLIJ DO WSZYSTKICH
+        messagingTemplate.convertAndSend(
+                "/topic/comments/" + comment.getPostId(),
+                saved
+        );
+        
+        messagingTemplate.convertAndSend(
+                "/topic/posts/" + comment.getPostId(),
+                "NEW_COMMENT"
+        );
 
         return saved;
     }

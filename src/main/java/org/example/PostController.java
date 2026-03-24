@@ -3,6 +3,7 @@ package org.example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,9 +15,13 @@ import java.util.List;
 public class PostController {
 
     private final PostRepository repository;
+    private final PostViewRepository postViewRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public PostController(PostRepository repository) {
+    public PostController(PostRepository repository, PostViewRepository postViewRepository, SimpMessagingTemplate messagingTemplate) {
         this.repository = repository;
+        this.postViewRepository = postViewRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @GetMapping
@@ -26,18 +31,51 @@ public class PostController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'PREMIUM')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'PREMIUM') or hasAnyAuthority('USER', 'ADMIN', 'PREMIUM')")
     public Post createPost(@RequestBody Post post) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-
         post.setAuthor(username);
-
         return repository.save(post);
     }
 
     @GetMapping("/{id}")
     public Post getPost(@PathVariable Long id) {
-        return repository.findById(id).orElseThrow();
+
+        Post post = repository.findById(id).orElseThrow();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth != null && auth.isAuthenticated()) {
+
+            String email = auth.getName();
+
+            // 🔥 NIE licz autora
+            if (!email.equals(post.getAuthor())) {
+
+                boolean alreadyViewed =
+                        postViewRepository.existsByPostIdAndUserEmail(id, email);
+
+                if (!alreadyViewed) {
+
+                    // 🔥 zapis view
+                    PostView view = new PostView();
+                    view.setPostId(id);
+                    view.setUserEmail(email);
+                    postViewRepository.save(view);
+
+                    // 🔥 zwiększ licznik
+                    post.setViews(post.getViews() + 1);
+                    repository.save(post);
+
+                    messagingTemplate.convertAndSend(
+                            "/topic/posts/" + id,
+                            "VIEW"
+                    );
+                }
+            }
+        }
+
+        return post;
     }
 }
