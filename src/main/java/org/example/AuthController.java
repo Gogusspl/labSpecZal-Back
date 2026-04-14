@@ -19,7 +19,6 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(
             @RequestBody LoginRequest request

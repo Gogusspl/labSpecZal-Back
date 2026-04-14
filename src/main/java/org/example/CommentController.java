@@ -24,13 +24,11 @@ public class CommentController {
         this.messagingTemplate = messagingTemplate;
     }
 
-    // 🔹 GET komentarzy do posta
     @GetMapping("/{postId}")
     public List<Comment> getByPost(@PathVariable Long postId) {
         return repository.findByPostIdOrderByCreatedAtDesc(postId);
     }
 
-    // 🔹 DODAWANIE komentarza
     @PostMapping
     public Comment addComment(@RequestBody Comment comment) {
 
@@ -46,7 +44,6 @@ public class CommentController {
             postRepository.save(post);
         });
 
-        // 🔥 WYŚLIJ DO WSZYSTKICH
         messagingTemplate.convertAndSend(
                 "/topic/comments/" + comment.getPostId(),
                 saved

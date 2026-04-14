@@ -36,9 +36,16 @@ public class PostController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         post.setAuthor(username);
-        return repository.save(post);
-    }
 
+        Post saved = repository.save(post);
+
+        messagingTemplate.convertAndSend(
+                "/topic/posts",
+                saved
+        );
+
+        return saved;
+    }
     @GetMapping("/{id}")
     public Post getPost(@PathVariable Long id) {
 
@@ -50,7 +57,6 @@ public class PostController {
 
             String email = auth.getName();
 
-            // 🔥 NIE licz autora
             if (!email.equals(post.getAuthor())) {
 
                 boolean alreadyViewed =
@@ -58,13 +64,11 @@ public class PostController {
 
                 if (!alreadyViewed) {
 
-                    // 🔥 zapis view
                     PostView view = new PostView();
                     view.setPostId(id);
                     view.setUserEmail(email);
                     postViewRepository.save(view);
 
-                    // 🔥 zwiększ licznik
                     post.setViews(post.getViews() + 1);
                     repository.save(post);
 

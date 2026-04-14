@@ -24,7 +24,6 @@ public class Comment {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // getters/setters
     public Long getId() { return id; }
 
     public Long getPostId() { return postId; }
