@@ -32,7 +32,6 @@ public class Post {
     @ElementCollection
     private List<String> tags;
 
-    // --- Gettery i settery ---
     public Long getId() { return id; }
 
     public void setId(Long id) { this.id = id; }
